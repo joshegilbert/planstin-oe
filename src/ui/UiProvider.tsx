@@ -87,6 +87,8 @@ export const EMPTY_FILTERS: GroupFilters = {
   specialist: '',
   month: '',
   status: '',
+  state: '',
+  agent: '',
   bucket: '',
   mine: false,
 };

@@ -7,3 +7,9 @@ dist
 *.log
 .vite
 *.tsbuildinfo
+
+# Real client book of business — never commit
+supabase/data/
+supabase/seed_real.sql
+
+test_videos/

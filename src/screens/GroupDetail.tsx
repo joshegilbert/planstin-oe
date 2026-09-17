@@ -289,6 +289,36 @@ export default function GroupDetailScreen() {
                 />
               </div>
               <div className="field">
+                <label>Enrolled members</label>
+                <input
+                  className="input"
+                  type="number"
+                  value={g.enrollments ?? ''}
+                  placeholder="—"
+                  onChange={(e) =>
+                    patch({ enrollments: e.target.value === '' ? null : Number(e.target.value) })
+                  }
+                />
+              </div>
+              <div className="field">
+                <label>State</label>
+                <input
+                  className="input"
+                  value={g.state}
+                  placeholder="Utah"
+                  onChange={(e) => patch({ state: e.target.value })}
+                />
+              </div>
+              <div className="field">
+                <label>Agent of record</label>
+                <input
+                  className="input"
+                  value={g.agent}
+                  placeholder="Planstin - Default Agent"
+                  onChange={(e) => patch({ agent: e.target.value })}
+                />
+              </div>
+              <div className="field">
                 <label>Benefit manager</label>
                 <select
                   className="input"
@@ -326,6 +356,11 @@ export default function GroupDetailScreen() {
                   value={g.effective}
                   onChange={(e) => patch({ effective: e.target.value })}
                 />
+                {g.originalEffective && g.originalEffective !== g.effective && (
+                  <div style={{ fontSize: 11.5, color: 'var(--color-muted)', marginTop: 4 }}>
+                    With Planstin since {md(g.originalEffective)}
+                  </div>
+                )}
               </div>
               {oeOn && (
                 <div className="field">
@@ -477,7 +512,7 @@ export default function GroupDetailScreen() {
                 className="btn btn-secondary"
                 style={{ fontSize: 12, padding: '7px 14px' }}
                 onClick={() =>
-                  patch({ classes: [...g.classes, { id: `c${Date.now()}`, name: '' }] })
+                  patch({ classes: [...g.classes, { id: crypto.randomUUID(), name: '' }] })
                 }
               >
                 + Add class
@@ -1027,6 +1062,15 @@ export default function GroupDetailScreen() {
               Mark the plans this group is offering on the{' '}
               <strong style={{ fontWeight: 600 }}>Plan options</strong> tab and they will appear
               here for contribution amounts.
+              <div style={{ marginTop: 14 }}>
+                <button
+                  className="btn btn-secondary"
+                  style={{ fontSize: 12, padding: '7px 14px' }}
+                  onClick={() => ui.setDetailTab('plans')}
+                >
+                  Go to Plan options →
+                </button>
+              </div>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>

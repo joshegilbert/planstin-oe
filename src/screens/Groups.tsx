@@ -13,8 +13,9 @@ import type { Group } from '../types';
 
 const COLUMNS: Array<[string, string]> = [
   ['name', 'Group'],
-  ['emp', 'EE'],
-  ['eff', 'Effective'],
+  ['emp', 'EE / Enr'],
+  ['eff', 'Renewal'],
+  ['state', 'State'],
   ['oe', 'OE window'],
   ['manager', 'Manager'],
   ['specs', 'Specialists'],
@@ -30,11 +31,15 @@ export default function GroupsScreen() {
   const F = ui.filters;
 
   const rows = useMemo(() => {
+    const q = ui.search.trim().toLowerCase();
     const inFilter = (g: Group) => {
+      if (q && g.name.toLowerCase().indexOf(q) < 0) return false;
       if (F.manager && g.managerId !== F.manager) return false;
       if (F.specialist && !g.specialists.some((a) => a.id === F.specialist)) return false;
       if (F.month && g.effective.slice(0, 7) !== F.month) return false;
       if (F.status && g.status !== F.status) return false;
+      if (F.state && g.state !== F.state) return false;
+      if (F.agent && g.agent !== F.agent) return false;
       if (
         F.mine &&
         !(
@@ -62,6 +67,8 @@ export default function GroupsScreen() {
           return g.employees;
         case 'eff':
           return g.effective;
+        case 'state':
+          return g.state || 'zzz';
         case 'oe':
           return g.oeStart || 'zzz';
         case 'manager':
@@ -84,11 +91,15 @@ export default function GroupsScreen() {
         const B = val(b);
         return (A < B ? -1 : A > B ? 1 : 0) * ui.sort.d;
       });
-  }, [data, F, ui.sort, me]);
+  }, [data, F, ui.sort, ui.search, me]);
 
   const monthsSet = Array.from(new Set(data.groups.map((g) => g.effective.slice(0, 7))))
     .filter(Boolean)
     .sort();
+
+  /** Distinct values for the book-of-business filters, in alphabetical order. */
+  const distinct = (pick: (g: Group) => string) =>
+    Array.from(new Set(data.groups.map(pick))).filter(Boolean).sort();
 
   const filterDefs: Array<{ key: keyof typeof F; blank: string; options: Array<[string, string]> }> = [
     {
@@ -103,6 +114,8 @@ export default function GroupsScreen() {
     },
     { key: 'month', blank: 'All months', options: monthsSet.map((m) => [m, monthLabel(m)]) },
     { key: 'status', blank: 'All statuses', options: STATUSES.map((s) => [s, s]) },
+    { key: 'state', blank: 'All states', options: distinct((g) => g.state).map((s) => [s, s]) },
+    { key: 'agent', blank: 'All agents', options: distinct((g) => g.agent).map((a) => [a, a]) },
   ];
 
   const exportPdf = () => downloadGroupsSummaryPdf(rows.map((g) => buildGroupExport(data, g)), 'groups-export.pdf');
@@ -116,6 +129,13 @@ export default function GroupsScreen() {
           {rows.length} of {data.groups.length} groups
         </div>
         <div style={{ flex: 1 }} />
+        <input
+          className="input"
+          placeholder="Search groups"
+          value={ui.search}
+          onChange={(e) => ui.setSearch(e.target.value)}
+          style={{ width: 190 }}
+        />
         <button className="btn btn-secondary" style={{ fontSize: 12 }} onClick={exportPdf}>
           Export PDF
         </button>
@@ -175,7 +195,10 @@ export default function GroupsScreen() {
         <button
           className="btn btn-ghost"
           style={{ fontSize: 12 }}
-          onClick={() => ui.setFilters(EMPTY_FILTERS)}
+          onClick={() => {
+            ui.setFilters(EMPTY_FILTERS);
+            ui.setSearch('');
+          }}
         >
           Clear
         </button>
@@ -235,8 +258,12 @@ export default function GroupsScreen() {
                 </td>
                 <td style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                   {g.employees}
+                  {g.enrollments != null && (
+                    <span style={{ color: 'var(--color-muted)' }}> / {g.enrollments}</span>
+                  )}
                 </td>
                 <td>{md(g.effective)}</td>
+                <td style={{ whiteSpace: 'nowrap' }}>{g.state || '—'}</td>
                 <td>{g.oeStart ? `${md(g.oeStart)} – ${md(g.oeEnd)}` : '—'}</td>
                 <td>{personName(data, g.managerId)}</td>
                 <td>

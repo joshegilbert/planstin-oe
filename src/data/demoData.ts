@@ -69,8 +69,12 @@ export function demoData(): AppData {
     id: x.id,
     name: x.name,
     employees: x.employees,
+    enrollments: null,
+    state: '',
+    agent: '',
     type: x.type,
     effective: x.effective,
+    originalEffective: '',
     oeStart: x.oeStart,
     oeEnd: x.oeEnd,
     format: x.format,
@@ -114,6 +118,10 @@ export function demoData(): AppData {
 export function normalize(d: AppData): AppData {
   for (const g of d.groups) {
     if (!g.oeMode) g.oeMode = 'Full';
+    if (g.enrollments === undefined) g.enrollments = null;
+    if (!g.state) g.state = '';
+    if (!g.agent) g.agent = '';
+    if (!g.originalEffective) g.originalEffective = '';
     if (!g.info) g.info = {};
     if (!g.tool) g.tool = {};
     if (!g.timeline) g.timeline = {};

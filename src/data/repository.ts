@@ -133,6 +133,10 @@ export async function loadAppData(): Promise<AppData> {
       effective: str(g.effective_date),
       oeStart: booking?.start ?? '',
       oeEnd: booking?.end ?? '',
+      enrollments: g.enrollments ?? null,
+      state: str(g.state),
+      agent: str(g.agent),
+      originalEffective: str(g.original_effective_date),
       format: g.oe_format,
       guideId: str(g.guide_id),
       managerId: str(g.manager_id),
@@ -215,8 +219,12 @@ export async function saveGroup(prev: Group | undefined, next: Group): Promise<v
   const core = {
     name: next.name,
     employees: next.employees,
+    enrollments: next.enrollments ?? null,
+    state: next.state || null,
+    agent: next.agent || null,
     group_type: next.type,
     effective_date: next.effective || null,
+    original_effective_date: next.originalEffective || null,
     oe_format: next.format,
     oe_mode: next.oeMode,
     status: next.status,
@@ -236,10 +244,12 @@ export async function saveGroup(prev: Group | undefined, next: Group): Promise<v
     !same(
       [prev.name, prev.employees, prev.type, prev.effective, prev.format, prev.oeMode,
         prev.status, prev.guideId, prev.managerId, prev.notes, prev.info, prev.contribMode,
-        prev.oeGuide, prev.editedBy, prev.editedAt],
+        prev.oeGuide, prev.editedBy, prev.editedAt,
+        prev.enrollments, prev.state, prev.agent, prev.originalEffective],
       [next.name, next.employees, next.type, next.effective, next.format, next.oeMode,
         next.status, next.guideId, next.managerId, next.notes, next.info, next.contribMode,
-        next.oeGuide, next.editedBy, next.editedAt],
+        next.oeGuide, next.editedBy, next.editedAt,
+        next.enrollments, next.state, next.agent, next.originalEffective],
     );
   if (coreChanged) {
     const { error } = await c.from('groups').update(core).eq('id', next.id);
@@ -309,17 +319,17 @@ export async function saveGroup(prev: Group | undefined, next: Group): Promise<v
 
   // --- employee classes -----------------------------------------------------
   if (!same(prev?.classes, next.classes)) {
-    const keep = next.classes.filter((cl) => !cl.id.startsWith('c') || cl.id.length > 20);
     const removed = (prev?.classes ?? []).filter((p) => !next.classes.some((n) => n.id === p.id));
-    for (const r of removed) await c.from('employee_classes').delete().eq('id', r.id);
-    for (const [i, cl] of next.classes.entries()) {
-      if (keep.includes(cl)) {
-        await c.from('employee_classes').update({ name: cl.name, sort_order: i }).eq('id', cl.id);
-      } else {
-        await c
-          .from('employee_classes')
-          .insert({ id: cl.id, group_id: next.id, name: cl.name, sort_order: i });
-      }
+    for (const r of removed) {
+      const { error } = await c.from('employee_classes').delete().eq('id', r.id);
+      if (error) throw error;
+    }
+    if (next.classes.length) {
+      const { error } = await c.from('employee_classes').upsert(
+        next.classes.map((cl, i) => ({ id: cl.id, group_id: next.id, name: cl.name, sort_order: i })),
+        { onConflict: 'id' },
+      );
+      if (error) throw error;
     }
   }
 

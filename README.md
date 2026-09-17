@@ -82,7 +82,27 @@ The schema lives in `supabase/migrations/*.sql` (run in filename order —
 3. Repeat for each later `000N_*.sql` migration, in order.
 4. New query again, paste `supabase/seed.sql`, run it.
 
-**Option B — Supabase CLI**
+**Option B — the bundled runner (no CLI, no psql)**
+
+```bash
+node scripts/run-sql.mjs supabase/migrations/0001_init.sql   # then 0002, 0003, …
+node scripts/run-sql.mjs supabase/seed.sql
+```
+
+Each file runs inside a single transaction, so a failure rolls the whole file
+back rather than leaving the schema half-applied. Add `--dry-run` to execute
+everything, print the result, and then roll back — worth doing before anything
+destructive:
+
+```bash
+node scripts/run-sql.mjs --dry-run supabase/seed_real.sql
+```
+
+It connects with `SUPABASE_POOLER_URL` from `.env.local`. Use the **pooler**
+string, not `SUPABASE_DB_URL`: `db.<ref>.supabase.co` resolves over IPv6 only
+and will not connect from most machines.
+
+**Option C — Supabase CLI**
 
 ```bash
 npm install -g supabase          # or: brew install supabase/tap/supabase
@@ -135,8 +155,11 @@ Supabase's Admin API, not plain SQL. Copy the **service_role** secret from
 node scripts/seed-admin.mjs you@yourcompany.com <a-real-password>
 ```
 
-This creates the auth user and marks their roster row `active` + `is_admin`.
-Change the password after first login if you used a placeholder one.
+This creates the auth user and marks their roster row `active` + `is_admin`,
+keeping whatever name and role the roster already has for that address. Re-run
+it on an account that already exists and it **resets the password** to the one
+you pass — that's the way back in when nobody remembers it. Change the password
+after first login if you used a placeholder one.
 
 ### 2.5 Pre-provisioning roster rows
 
@@ -149,7 +172,52 @@ you are" path; anyone who signs up without a matching row goes through
 `supabase/seed.sql` with your team's real addresses before relying on this,
 or edit the rows afterwards in the Table Editor.
 
-### 2.6 Row-level security
+### 2.6 Loading the real book of business
+
+`supabase/seed.sql` is demo data. The real book is imported from a CSV export
+with these columns:
+
+```
+Benefit Manager, Benefit Specialist, Group, Group Effective Date,
+State, Agent, Current Employees, Enrollments
+```
+
+```bash
+cp <the export>.csv supabase/data/book-of-business.csv
+node scripts/build-seed.mjs                            # -> supabase/seed_real.sql
+node scripts/run-sql.mjs --dry-run supabase/seed_real.sql
+node scripts/run-sql.mjs supabase/seed_real.sql
+```
+
+`build-seed.mjs` touches no database — it only writes SQL, and prints a summary
+(groups and employees per manager, per specialist, per renewal month) to check
+against before you run it. Three things it does that are worth knowing:
+
+- **Renewal dates roll forward.** A group effective `2021 November` renews every
+  November, so `effective_date` becomes the first November 1st on or after today
+  and the calendar shows the upcoming wave instead of a date in 2021. The export's
+  value is kept in `original_effective_date`.
+- **Managers and specialists become roster rows, not logins.** Each gets
+  `firstnamelastname@planstin.com` and no `user_id` — assignable immediately,
+  and claimed automatically if that person ever signs up (see [2.5](#25-pre-provisioning-roster-rows)).
+  Change `EMAIL_DOMAIN` at the top of the script for a different domain.
+- **Imported groups start at "No OE", with their paperwork already in.** These
+  are renewals, and a renewal does not enter the OE pipeline just by existing —
+  every group lands `oe_mode = 'None'`, which keeps it off the calendar, the
+  capacity board and the unscheduled queue until a Benefit Manager switches it
+  to Full or Renewal OE on the group page. Their ASA and Census are marked
+  received, because these are existing clients whose paperwork has long been on
+  file; those two checks are there to track *new* group onboarding.
+- **It is safe to re-run.** People are upserted by email, so an already-claimed
+  login keeps its `user_id`, `account_status` and `is_admin`. The wipe deletes
+  every group but only the roster rows that have never been claimed, and leaves
+  `enav_closeouts` alone.
+
+`supabase/seed_test_fixture.sql` adds a throwaway specialist and group for
+poking at the app without touching a real client; `drop_test_fixture.sql`
+removes them.
+
+### 2.7 Row-level security
 
 RLS is enabled on every table. `0001_init.sql`'s policies are a sensible
 first pass: any authenticated user can read the whole book of business, and
@@ -159,6 +227,17 @@ broader write access). `0002_account_approval.sql` narrows all of that to
 their own roster row and can't write anywhere. **None of this has had a
 professional security review.** Read it against your actual roles before the
 tables hold real client data.
+
+Two consequences worth stating plainly now that they do:
+
+- **Any approved account reads the whole book** — every group, rate,
+  contribution and note — including the `Employee` role. "Mine" on `/groups` is
+  a UI toggle, not a boundary. Narrowing reads per role means new `select`
+  policies *and* client changes, since `loadAppData` assumes it can see
+  everything.
+- **Demo mode authenticates anyone.** With the `VITE_` variables missing,
+  `AuthProvider` accepts any email with no password check. They must be set at
+  *build* time, or the deployed site is an open door.
 
 ---
 
@@ -215,10 +294,16 @@ src/
   components/           AppShell, WeekBand, primitives, overlays/
   styles/theme.css      design tokens + .btn/.input/.tbl primitives
 supabase/
-  migrations/           0001_init.sql, then 0002+ (account approval, roles)
-  seed.sql
+  migrations/           0001_init.sql, then 0002+ (account approval, roles,
+                        plan pricing, book-of-business fields)
+  seed.sql              demo roster + 13 sample groups
+  data/                 the book-of-business CSV export
+  seed_real.sql         GENERATED from that CSV by scripts/build-seed.mjs
+  seed_test_fixture.sql throwaway specialist + group; drop_test_fixture.sql undoes it
 scripts/
-  seed-admin.mjs        one-off: create the first admin login (see 2.4)
+  run-sql.mjs           run a .sql file (one transaction; --dry-run rolls back)
+  build-seed.mjs        CSV -> seed_real.sql (see 2.6); writes no data itself
+  seed-admin.mjs        create an admin login, or reset its password (see 2.4)
 ```
 
 The data layer is deliberately one denormalised `AppData` object (people,

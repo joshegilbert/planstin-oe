@@ -1,12 +1,16 @@
-// One-off script: create the first admin account.
+// Create — or repair — an admin account.
 //
 // Usage:
 //   node scripts/seed-admin.mjs <email> <password>
 //
 // Requires VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in .env.local (the
 // service_role key, never the anon key — it bypasses RLS entirely, so never
-// commit it or ship it to the browser). Safe to re-run: if the auth user
-// already exists it reuses it, and the specialists row upsert is idempotent.
+// commit it or ship it to the browser).
+//
+// Safe to re-run, and the re-run is the point: if the auth user already exists
+// its password is RESET to the one given, so this doubles as the way back in
+// when nobody remembers the password. The specialists row is upserted either
+// way, preserving whatever name and role the roster already has.
 
 import { readFileSync, existsSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
@@ -69,6 +73,15 @@ if (createErr) {
     console.error(`Could not find an existing auth user for ${email}`);
     process.exit(1);
   }
+  const { error: pwErr } = await admin.auth.admin.updateUserById(userId, {
+    password,
+    email_confirm: true,
+  });
+  if (pwErr) {
+    console.error('password reset failed:', pwErr.message);
+    process.exit(1);
+  }
+  console.log(`Password for ${email} reset.`);
 } else {
   userId = created.user.id;
   console.log(`Created auth user ${email} (${userId}).`);
@@ -76,15 +89,32 @@ if (createErr) {
 
 // The sign-up trigger (handle_new_user) only runs on INSERT into auth.users,
 // so for a brand-new user it has already created a pending specialists row
-// linked to this user_id. Promote it to an active admin.
+// linked to this user_id — either freshly inserted, or a pre-provisioned roster
+// row claimed by matching email. Either way, look it up so the name and role the
+// roster already carries survive being promoted to admin.
+const { data: existing } = await admin
+  .from('specialists')
+  .select('name, role')
+  .eq('email', email)
+  .maybeSingle();
+
+const fallbackName = email
+  .split('@')[0]
+  .split(/[._-]+/)
+  .filter(Boolean)
+  .map((w) => w[0].toUpperCase() + w.slice(1))
+  .join(' ');
+
 const { data: upserted, error: upsertErr } = await admin
   .from('specialists')
   .upsert(
     {
       user_id: userId,
       email,
-      name: 'Josh Gilbert',
-      role: 'Manager',
+      name: existing?.name || fallbackName,
+      // An admin needs a role to be 'active' at all (migration 0003). Manager is
+      // the widest one, and matches what a first admin is in practice.
+      role: existing?.role || 'Manager',
       account_status: 'active',
       is_admin: true,
     },

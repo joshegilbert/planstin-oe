@@ -93,6 +93,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   /** Apply a change to the cache immediately, then persist it. */
   const persist = useMutation({
+    // Each job writes a diff against the state before it, so jobs must land in order.
+    scope: { id: 'app-data-writes' },
     mutationFn: async (job: () => Promise<void>) => job(),
     onError: (err) => {
       console.error('[Planstin OE] write failed', err);

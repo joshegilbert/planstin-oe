@@ -71,8 +71,17 @@ export interface Group {
   id: string;
   name: string;
   employees: number;
+  /** Enrolled members — always >= employees, since it counts dependents. */
+  enrollments: number | null;
+  /** Verbatim from the book of business, "[E]" markers included. */
+  state: string;
+  /** Broker agent of record. */
+  agent: string;
   type: GroupType;
+  /** The NEXT renewal. Groups renew on this month every year. */
   effective: string;
+  /** The group's original effective date, which can be years back. */
+  originalEffective: string;
   oeStart: string;
   oeEnd: string;
   format: OeFormat;
@@ -112,6 +121,8 @@ export interface GroupFilters {
   specialist: string;
   month: string;
   status: string;
+  state: string;
+  agent: string;
   bucket: string;
   mine: boolean;
 }

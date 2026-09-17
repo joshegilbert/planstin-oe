@@ -29,8 +29,14 @@ export default function DraftDialog() {
       id: newId('g'),
       name: draft!.name || 'Untitled group',
       employees: emp,
+      // Book-of-business fields come from the import; a group drafted in-app
+      // starts blank and is filled in on the Details tab.
+      enrollments: null,
+      state: '',
+      agent: '',
       type: draft!.type,
       effective: draft!.effective,
+      originalEffective: draft!.effective,
       oeStart: '',
       oeEnd: '',
       format: draft!.format,
