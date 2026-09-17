@@ -1,0 +1,231 @@
+/* Design tokens + primitives carried over verbatim from the Claude Design mockup
+   ("OE Planner.dc.html" :root block and its .btn / .input / .tbl / .field rules). */
+
+:root {
+  --color-bg: #ffffff;
+  --color-shell: #f6f7f9;
+  --color-surface: #ffffff;
+  --color-text: #1a1c1e;
+  --color-muted: #697077;
+  --color-accent: #e0342b;
+  --color-accent-100: #fdf3f2;
+  --color-accent-200: #fbdedb;
+  --color-accent-300: #f5b8b3;
+  --color-accent-400: #ec7f77;
+  --color-accent-500: #e0342b;
+  --color-accent-600: #c72a22;
+  --color-accent-700: #a4211b;
+  --color-accent-800: #7c1814;
+  --color-accent-900: #4f100d;
+  --color-divider: #e4e7ea;
+  --color-open: #0d8a5b;
+  --color-neutral-100: #fafbfc;
+  --color-neutral-200: #f1f3f5;
+  --color-neutral-300: #e4e7ea;
+  --color-neutral-400: #c3c8ce;
+  --color-neutral-500: #9aa1a9;
+  --color-neutral-600: #7b838c;
+  --color-neutral-700: #5b636b;
+  --color-neutral-800: #3a4046;
+  --color-neutral-900: #22262a;
+  --font-heading: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading-weight: 600;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05), 0 1px 3px rgba(16, 24, 40, 0.05);
+  --shadow-md: 0 4px 14px rgba(16, 24, 40, 0.08);
+  --shadow-lg: 0 18px 44px rgba(16, 24, 40, 0.16);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--color-shell);
+  color: var(--color-text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  letter-spacing: -0.021em;
+}
+
+h6 {
+  font-size: 13.5px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-muted);
+  margin: 0 0 10px;
+  font-weight: 600;
+}
+
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-accent-700);
+  text-decoration: underline;
+}
+
+hr.hr {
+  border: 0;
+  border-top: 1px solid var(--color-divider);
+  margin: 22px 0;
+}
+
+input,
+select,
+textarea,
+button {
+  font-family: var(--font-body);
+}
+
+.input {
+  width: 100%;
+  padding: 8px 11px;
+  border: 1px solid var(--color-divider);
+  background: #fff;
+  color: var(--color-text);
+  font-size: 13.5px;
+  border-radius: 9px;
+  outline: none;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.input:hover {
+  border-color: var(--color-neutral-400);
+}
+
+.input:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(224, 52, 43, 0.13);
+}
+
+.field label {
+  display: block;
+  font-size: 12px;
+  color: var(--color-muted);
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 13px;
+  line-height: 1.2;
+  padding: 9px 16px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--color-accent);
+  color: #fff;
+  border: 1px solid var(--color-accent);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-accent-600);
+  border-color: var(--color-accent-600);
+}
+
+.btn-secondary {
+  background: #fff;
+  color: var(--color-text);
+  border: 1px solid var(--color-divider);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--color-neutral-200);
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--color-muted);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--color-neutral-200);
+  color: var(--color-text);
+}
+
+.tbl {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13.5px;
+  background: #fff;
+  border: 1px solid var(--color-divider);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.tbl th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+  padding: 11px 14px;
+  background: var(--color-neutral-100);
+  border-bottom: 1px solid var(--color-divider);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tbl td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-divider);
+  vertical-align: middle;
+}
+
+.tbl tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tbl tbody tr:hover {
+  background: var(--color-neutral-100);
+}
+
+.demo-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 22px;
+  background: var(--color-accent-100);
+  border-bottom: 1px solid var(--color-accent-200);
+  font-size: 12px;
+  color: var(--color-accent-900);
+}
